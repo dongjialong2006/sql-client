@@ -11,6 +11,10 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
-# file
-vendor
+# glide runtime required dir
+.GOPATH
 bin
+vendor
+
+### VisualStudioCode template
+.vscode
