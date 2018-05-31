@@ -16,14 +16,14 @@ import (
 
 type QL struct {
 	sync.RWMutex
-	db   *ql.DB
-	cfg  *types.Config
+	db  *ql.DB
+	cfg *types.Config
 	ctx context.Context
 }
 
 func NewQL(ctx context.Context, cfg *types.Config) *QL {
 	srv := &QL{
-		cfg:  cfg,
+		cfg: cfg,
 		ctx: ctx,
 	}
 	go srv.watch()
