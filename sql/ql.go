@@ -1,9 +1,12 @@
 package sql
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sql-client/pkg/file"
+	"sql-client/pkg/show"
+	"sql-client/types"
 	"strings"
 	"sync"
 
@@ -11,29 +14,46 @@ import (
 	"github.com/mssola/colors"
 )
 
-var rw sync.RWMutex
-var ctx = ql.NewRWCtx()
-var db *ql.DB = nil
-
-func Create(path string) error {
-	rw.Lock()
-	defer rw.Unlock()
-	var err error = nil
-	db, err = ql.OpenFile(path, &ql.Options{})
-	return err
+type QL struct {
+	sync.RWMutex
+	db   *ql.DB
+	cfg  *types.Config
+	ctx context.Context
 }
 
-func filter(value string) string {
-	value = strings.Replace(value, "\n", " ", -1)
-	return strings.Replace(value, "\"", "'", -1)
+func NewQL(ctx context.Context, cfg *types.Config) *QL {
+	srv := &QL{
+		cfg:  cfg,
+		ctx: ctx,
+	}
+	go srv.watch()
+
+	return srv
 }
 
-func Exec(value string, path string, color *colors.Color) error {
-	if "" == value {
+func (s *QL) Exec(value string, color *colors.Color) error {
+	if "" == value || "" == s.cfg.Path {
 		return nil
 	}
 
-	rs, _, err := db.Run(ctx, fmt.Sprintf("BEGIN TRANSACTION; %s; COMMIT;", filter(value)))
+	var err error = nil
+	s.Lock()
+	s.db, err = ql.OpenFile(s.cfg.Path, &ql.Options{})
+	s.Unlock()
+	if nil != err {
+		return err
+	}
+
+	defer func() {
+		s.Lock()
+		if nil != s.db {
+			s.db.Close()
+			s.db = nil
+		}
+		s.Unlock()
+	}()
+
+	rs, _, err := s.db.Run(ql.NewRWCtx(), fmt.Sprintf("BEGIN TRANSACTION; %s; COMMIT;", s.filter(value)))
 	if nil != err {
 		return err
 	}
@@ -42,7 +62,10 @@ func Exec(value string, path string, color *colors.Color) error {
 	}
 
 	for _, tmp := range rs {
-		if err = unMarshal(tmp, path, color); nil != err {
+		if nil == tmp {
+			continue
+		}
+		if err = s.parse(tmp, color); nil != err {
 			return err
 		}
 	}
@@ -50,20 +73,33 @@ func Exec(value string, path string, color *colors.Color) error {
 	return nil
 }
 
-func printInfo(info string, color *colors.Color) {
-	if "" != info {
-		fmt.Println(color.Get(info))
-	}
+func (s *QL) Stop() {
+	return
 }
 
-func unMarshal(tmp ql.Recordset, path string, color *colors.Color) error {
+func (s *QL) watch() {
+	<-s.ctx.Done()
+	s.Lock()
+	if nil != s.db {
+		s.db.Close()
+		s.db = nil
+	}
+	s.Unlock()
+}
+
+func (s *QL) filter(value string) string {
+	value = strings.Replace(value, "\n", " ", -1)
+	return strings.Replace(value, "\"", "'", -1)
+}
+
+func (s *QL) parse(tmp ql.Recordset, color *colors.Color) error {
 	records, err := tmp.Rows(-1, 0)
 	if nil != err {
 		return err
 	}
 
-	if "" != path {
-		if err = file.CreatePath(path); nil != err {
+	if "" != s.cfg.File {
+		if err = file.CreatePath(s.cfg.File); nil != err {
 			return err
 		}
 	}
@@ -76,71 +112,28 @@ func unMarshal(tmp ql.Recordset, path string, color *colors.Color) error {
 		return err
 	}
 
-	if err = show(path, fields, records, color); nil != err {
+	if err = s.show(fields, records, color); nil != err {
 		return err
 	}
 
 	return nil
 }
 
-func show(path string, fields []string, rows [][]interface{}, color *colors.Color) error {
-	header(fields, color)
+func (s *QL) show(fields []string, rows [][]interface{}, color *colors.Color) error {
+	show.Header(fields, color)
 	for i, row := range rows {
-		if "" == path {
-			draw(i, row, color)
+		if "" == s.cfg.File {
+			show.Body(i, row, color)
 			continue
 		}
 		data, err := json.Marshal(row)
 		if nil != err {
 			return err
 		}
-		if err = file.WriteFile(path, data); nil != err {
+		if err = file.WriteFile(s.cfg.File, data); nil != err {
 			return err
 		}
 	}
 
 	return nil
-}
-
-func header(fields []string, color *colors.Color) {
-	fmt.Print(">>> ")
-	color.Change(colors.Red, false)
-	var tmp string = color.Get("table fields: ")
-	for i, field := range fields {
-		color.Change(colors.Red, false)
-		tmp += color.Get(fmt.Sprintf("  %s  ", field))
-		if i != len(fields)-1 {
-			color.Change(colors.Blue, false)
-			tmp += color.Get("|")
-		}
-	}
-	printInfo(tmp, color)
-	return
-}
-
-func draw(num int, values []interface{}, color *colors.Color) {
-	color.Change(colors.Red, false)
-	var tmp string = color.Get(fmt.Sprintf("    row num:%d ", num))
-	fmt.Print(tmp)
-
-	tmp = ""
-	for i, value := range values {
-		color.Change(colors.Green, false)
-		tmp += color.Get(fmt.Sprintf(" %v ", value))
-		if i != len(values)-1 {
-			color.Change(colors.Blue, false)
-			tmp += color.Get("|")
-		}
-	}
-	printInfo(tmp, color)
-	return
-}
-
-func Close() {
-	rw.Lock()
-	defer rw.Unlock()
-	if nil != db {
-		db.Close()
-		db = nil
-	}
 }

@@ -2,42 +2,43 @@ package server
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"sql-client/sql"
+	"sql-client/types"
 	"strings"
 
 	"github.com/mssola/colors"
 )
 
 type Server struct {
-	path string
-	file string
+	ctx    context.Context
+	handle types.Handle
 }
 
-func New(path string, file string) *Server {
-	return &Server{
-		path: path,
-		file: file,
+func New(ctx context.Context, cfg *types.Config) (*Server, error) {
+	srv := &Server{
+		ctx: ctx,
 	}
+	switch cfg.Type {
+	case types.QL:
+		srv.handle = sql.NewQL(ctx, cfg)
+	default:
+		return nil, fmt.Errorf("unknown db driver type:%s.", cfg.Type)
+	}
+
+	return srv, nil
 }
 
-func (s *Server) Start(stop chan struct{}) error {
-	if "" == s.path {
-		return fmt.Errorf("database file path is empty.")
-	}
-
-	if err := sql.Create(s.path); nil != err {
-		return err
-	}
-
+func (s *Server) Start() error {
 	color := colors.Default()
 	var cmd = make(chan string)
 	go s.watch(cmd, color)
 
 	for {
 		select {
-		case <-stop:
+		case <-s.ctx.Done():
 			return nil
 		case tmp, ok := <-cmd:
 			if !ok {
@@ -48,7 +49,7 @@ func (s *Server) Start(stop chan struct{}) error {
 				return nil
 			}
 
-			if err := sql.Exec(s.filter(tmp), s.file, color); nil != err {
+			if err := s.handle.Exec(s.filter(tmp), color); nil != err {
 				s.errInfo(err, color, false)
 				continue
 			}
@@ -58,6 +59,10 @@ func (s *Server) Start(stop chan struct{}) error {
 	}
 
 	return nil
+}
+
+func (s *Server) Stop() {
+	s.handle.Stop()
 }
 
 func (s *Server) filter(value string) string {
@@ -100,8 +105,4 @@ func (s *Server) errInfo(err error, color *colors.Color, before bool) {
 	if !before {
 		fmt.Print(">>> ")
 	}
-}
-
-func (s *Server) Stop() {
-	sql.Close()
 }
