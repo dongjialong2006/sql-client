@@ -26,7 +26,7 @@ func NewQL(ctx context.Context, cfg *types.Config) *QL {
 		cfg: cfg,
 		ctx: ctx,
 	}
-	go srv.watch()
+	go srv.stop(true)
 
 	return srv
 }
@@ -43,15 +43,7 @@ func (s *QL) Exec(value string, color *colors.Color) error {
 	if nil != err {
 		return err
 	}
-
-	defer func() {
-		s.Lock()
-		if nil != s.db {
-			s.db.Close()
-			s.db = nil
-		}
-		s.Unlock()
-	}()
+	defer s.stop(false)
 
 	rs, _, err := s.db.Run(ql.NewRWCtx(), fmt.Sprintf("BEGIN TRANSACTION; %s; COMMIT;", s.filter(value)))
 	if nil != err {
@@ -74,11 +66,14 @@ func (s *QL) Exec(value string, color *colors.Color) error {
 }
 
 func (s *QL) Stop() {
+	s.stop(false)
 	return
 }
 
-func (s *QL) watch() {
-	<-s.ctx.Done()
+func (s *QL) stop(check bool) {
+	if check {
+		<-s.ctx.Done()
+	}
 	s.Lock()
 	if nil != s.db {
 		s.db.Close()
