@@ -24,6 +24,8 @@ func New(ctx context.Context, cfg *types.Config) (*Server, error) {
 	switch cfg.Type {
 	case types.QL:
 		srv.handle = sql.NewQL(ctx, cfg)
+	case types.SQLLITE3:
+		srv.handle = sql.NewSqlLite(ctx, cfg)
 	default:
 		return nil, fmt.Errorf("unknown db driver type:%s.", cfg.Type)
 	}

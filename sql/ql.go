@@ -45,11 +45,13 @@ func (s *QL) Exec(value string, color *colors.Color) error {
 	}
 	defer s.stop(false)
 
-	rs, _, err := s.db.Run(ql.NewRWCtx(), fmt.Sprintf("BEGIN TRANSACTION; %s; COMMIT;", s.filter(value)))
+	ctx := ql.NewRWCtx()
+	rs, _, err := s.db.Run(ctx, fmt.Sprintf("BEGIN TRANSACTION; %s; COMMIT;", s.filter(value)))
 	if nil != err {
 		return err
 	}
 	if 0 == len(rs) {
+		show.Title(int64(ctx.RowsAffected))
 		return nil
 	}
 
@@ -83,14 +85,24 @@ func (s *QL) stop(check bool) {
 }
 
 func (s *QL) filter(value string) string {
+	value = strings.Trim(value, " ")
+	value = strings.Trim(value, ";")
 	value = strings.Replace(value, "\n", " ", -1)
 	return strings.Replace(value, "\"", "'", -1)
 }
 
-func (s *QL) parse(tmp ql.Recordset, color *colors.Color) error {
-	records, err := tmp.Rows(-1, 0)
+func (s *QL) parse(records ql.Recordset, color *colors.Color) error {
+	if nil == records {
+		return nil
+	}
+
+	rs, err := records.Rows(-1, 0)
 	if nil != err {
 		return err
+	}
+
+	if 0 == len(rs) {
+		return nil
 	}
 
 	if "" != s.cfg.File {
@@ -99,15 +111,17 @@ func (s *QL) parse(tmp ql.Recordset, color *colors.Color) error {
 		}
 	}
 
-	color.Change(colors.Red, false)
-	fmt.Println(color.Get(fmt.Sprintf("current query result num: %d.", len(records))))
+	show.Title(int64(len(rs)))
 
-	fields, err := tmp.Fields()
+	fields, err := records.Fields()
 	if nil != err {
 		return err
 	}
+	if 0 == len(fields) {
+		return nil
+	}
 
-	if err = s.show(fields, records, color); nil != err {
+	if err = s.show(fields, rs, color); nil != err {
 		return err
 	}
 
@@ -115,10 +129,10 @@ func (s *QL) parse(tmp ql.Recordset, color *colors.Color) error {
 }
 
 func (s *QL) show(fields []string, rows [][]interface{}, color *colors.Color) error {
-	show.Header(fields, color)
+	show.Header(fields)
 	for i, row := range rows {
 		if "" == s.cfg.File {
-			show.Body(i, row, color)
+			show.Body(i, row)
 			continue
 		}
 		data, err := json.Marshal(row)
