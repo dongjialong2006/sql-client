@@ -1,5 +1,5 @@
-hash: ab4497eeeb84f665f2930af2f30dc942030cc8a4e7f658461dac9d1fdd6ea5eb
-updated: 2018-05-31T07:37:45.348668+08:00
+hash: d4d66eeee12cc4c2084add5f0fe980cc7fb36d9dc99f49a98d4fa5c852cf13f8
+updated: 2018-05-31T13:16:58.546232+08:00
 imports:
 - name: github.com/cznic/b
   version: 35e9bbe41f07452a183c517a5fc5f3c9f45eaa0f
@@ -27,6 +27,8 @@ imports:
   version: 2533cb5b45cc6c07421468ce262899ddc9d53fb7
 - name: github.com/edsrzf/mmap-go
   version: 0bce6a6887123b67a60366d2c9fe2dfb74289d2e
+- name: github.com/mattn/go-sqlite3
+  version: 323a32be5a2421b8c7087225079c6c900ec397cd
 - name: github.com/mssola/colors
   version: 12d505797f20cfbd37a77a6fe58a10c13299b4c3
 - name: github.com/namsral/flag
@@ -69,7 +71,7 @@ testImports:
   - matchers/support/goraph/util
   - types
 - name: golang.org/x/net
-  version: 75944861c7512f64725d687546cfbc757626151f
+  version: 1e491301e022f8f977054da4c2d852decd59571f
   subpackages:
   - html
   - html/atom
