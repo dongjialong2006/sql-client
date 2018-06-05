@@ -88,13 +88,27 @@ func (s *SqlLite) parse(rs *sql.Rows, color *colors.Color) error {
 	}
 	show.Header(cols)
 
+	colTypes, err := rs.ColumnTypes()
+	if nil != err {
+		return err
+	}
+
+	var types = make([]string, len(cols))
+	for i, stype := range colTypes {
+		types[i] = stype.DatabaseTypeName()
+	}
+
 	var num = 0
 	for rs.Next() {
-		var values = make([]interface{}, len(cols))
+		var values []interface{} = nil
+		for i := 0; i < len(cols); i++ {
+			var tmp interface{}
+			values = append(values, &tmp)
+		}
 		if err = rs.Scan(values...); nil != err {
 			return err
 		}
-		show.Body(num, values)
+		show.Body(num, values, types)
 		num++
 	}
 

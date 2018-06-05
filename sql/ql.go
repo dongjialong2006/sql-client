@@ -132,7 +132,7 @@ func (s *QL) show(fields []string, rows [][]interface{}, color *colors.Color) er
 	show.Header(fields)
 	for i, row := range rows {
 		if "" == s.cfg.File {
-			show.Body(i, row)
+			show.Body(i, row, nil)
 			continue
 		}
 		data, err := json.Marshal(row)

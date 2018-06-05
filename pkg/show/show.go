@@ -2,6 +2,7 @@ package show
 
 import (
 	"fmt"
+	"sql-client/pkg/transfer"
 
 	"github.com/mssola/colors"
 )
@@ -88,16 +89,23 @@ func Header(fields []string) {
 		}
 	}
 	if len(infos) > 0 {
-		TitlePrintListln(infos)
+		PrintListln(infos)
 	}
 	return
 }
 
-func Body(num int, values []interface{}) {
+func Body(num int, values []interface{}, types []string) {
 	var infos []*ShowInfo = nil
 	infos = append(infos, New(fmt.Sprintf("row num:%d ", num), colors.Red))
 	for i, value := range values {
-		infos = append(infos, New(fmt.Sprintf(" %v ", value), colors.Green))
+		if nil == value {
+			continue
+		}
+		if nil != types {
+			infos = append(infos, New(fmt.Sprintf(" %s ", transfer.ToString(types[i], value)), colors.Green))
+		} else {
+			infos = append(infos, New(fmt.Sprintf(" %v ", value), colors.Green))
+		}
 		if i != len(values)-1 {
 			infos = append(infos, New("|", colors.Blue))
 		}

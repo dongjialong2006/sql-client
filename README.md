@@ -9,12 +9,26 @@ QL数据库客户端
 - 该项目在mac和centos系统上均可编译，支持不同条目颜色显示。
 - 当前仅支持(S)QL数据库的文件操作，内存库操作后续更新。
 
+## 获取
+
+- git clone https://github.com/dongjialong2006/sql-client.git
+
+## 编译
+
+- make update
+- make
+
 ## 配置说明
 
 - 各项配置说明如下：
 - `file`：查询结果存储到文件的路径
 - `path`：database file路径
+- `driver`：database驱动
 
-## 启动命令
+## 启动
 
-`sql-client -path ../sslvpn-agent/bin/.cache/agent.db`
+- ./sql-client -path ./cache/agent.db
+
+## 操作
+
+- 如：`select * from xxx`, 按回车键即可
