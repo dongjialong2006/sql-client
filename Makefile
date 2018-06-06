@@ -20,7 +20,6 @@ update: .GOPATH/.ok
 	$Q glide up -v
 
 .PHONY: clean
-
 clean:
 	$Q rm -rf bin/* .GOPATH
 

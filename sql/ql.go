@@ -28,22 +28,22 @@ func NewQLClient(ctx context.Context, cfg *types.Options) *QLClient {
 	return srv
 }
 
-func (s *QLClient) Exec(value string, color *colors.Color) error {
-	if "" == value || "" == s.cfg.Addr {
+func (q *QLClient) Exec(value string, color *colors.Color) error {
+	if "" == value || "" == q.cfg.Addr {
 		return nil
 	}
 
 	var err error = nil
-	s.Lock()
-	s.db, err = ql.OpenFile(s.cfg.Addr, &ql.Options{})
-	s.Unlock()
+	q.Lock()
+	q.db, err = ql.OpenFile(q.cfg.Addr, &ql.Options{})
+	q.Unlock()
 	if nil != err {
 		return err
 	}
-	defer s.stop(false)
+	defer q.stop(false)
 
 	ctx := ql.NewRWCtx()
-	rs, _, err := s.db.Run(ctx, fmt.Sprintf("BEGIN TRANSACTION; %s; COMMIT;", value))
+	rs, _, err := q.db.Run(ctx, fmt.Sprintf("BEGIN TRANSACTION; %s; COMMIT;", value))
 	if nil != err {
 		return err
 	}
@@ -56,7 +56,7 @@ func (s *QLClient) Exec(value string, color *colors.Color) error {
 		if nil == tmp {
 			continue
 		}
-		if err = s.parse(tmp, color); nil != err {
+		if err = q.parse(tmp, color); nil != err {
 			return err
 		}
 	}
@@ -64,24 +64,24 @@ func (s *QLClient) Exec(value string, color *colors.Color) error {
 	return nil
 }
 
-func (s *QLClient) Stop() {
-	s.stop(false)
+func (q *QLClient) Stop() {
+	q.stop(false)
 	return
 }
 
-func (s *QLClient) stop(check bool) {
+func (q *QLClient) stop(check bool) {
 	if check {
-		<-s.ctx.Done()
+		<-q.ctx.Done()
 	}
-	s.Lock()
-	if nil != s.db {
-		s.db.Close()
-		s.db = nil
+	q.Lock()
+	if nil != q.db {
+		q.db.Close()
+		q.db = nil
 	}
-	s.Unlock()
+	q.Unlock()
 }
 
-func (s *QLClient) parse(records ql.Recordset, color *colors.Color) error {
+func (q *QLClient) parse(records ql.Recordset, color *colors.Color) error {
 	if nil == records {
 		return nil
 	}
@@ -105,14 +105,14 @@ func (s *QLClient) parse(records ql.Recordset, color *colors.Color) error {
 		return nil
 	}
 
-	if err = s.show(fields, rs, color); nil != err {
+	if err = q.show(fields, rs, color); nil != err {
 		return err
 	}
 
 	return nil
 }
 
-func (s *QLClient) show(fields []string, rows [][]interface{}, color *colors.Color) error {
+func (q *QLClient) show(fields []string, rows [][]interface{}, color *colors.Color) error {
 	show.Header(fields)
 	for i, row := range rows {
 		show.Body(i, row, nil)
