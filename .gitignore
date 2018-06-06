@@ -18,3 +18,5 @@ vendor
 
 ### VisualStudioCode template
 .vscode
+
+.DS_Store

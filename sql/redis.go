@@ -1,0 +1,92 @@
+package sql
+
+import (
+	"context"
+	"fmt"
+	"sql-client/pkg/show"
+	"sql-client/types"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/gomodule/redigo/redis"
+	"github.com/mssola/colors"
+)
+
+type RedisClient struct {
+	sync.RWMutex
+	db   redis.Conn
+	ctx  context.Context
+	addr string
+	opts []redis.DialOption
+}
+
+func NewRedisClient(ctx context.Context, opt *types.Options) *RedisClient {
+	if nil == opt.RedisOpt {
+		return nil
+	}
+
+	srv := &RedisClient{
+		addr: opt.Addr,
+		ctx:  ctx,
+	}
+
+	srv.opts = append(srv.opts, redis.DialConnectTimeout(30*time.Second))
+	srv.opts = append(srv.opts, redis.DialDatabase(opt.RedisOpt.DB))
+	if "" != opt.Pwd {
+		srv.opts = append(srv.opts, redis.DialPassword(opt.Pwd))
+	}
+	srv.opts = append(srv.opts, redis.DialReadTimeout(5*time.Second))
+	srv.opts = append(srv.opts, redis.DialWriteTimeout(30*time.Second))
+	if nil != opt.RedisOpt.Cfg {
+		srv.opts = append(srv.opts, redis.DialTLSConfig(opt.RedisOpt.Cfg))
+		srv.opts = append(srv.opts, redis.DialTLSSkipVerify(opt.RedisOpt.Vfy))
+	}
+
+	go srv.stop(true)
+
+	return srv
+}
+
+func (r *RedisClient) Exec(value string, color *colors.Color) error {
+	if "" == value {
+		return nil
+	}
+
+	var err error = nil
+	r.Lock()
+	r.db, err = redis.Dial("tcp", r.addr, r.opts...)
+	r.Unlock()
+	if nil != err {
+		return err
+	}
+	defer r.stop(false)
+
+	cmds := strings.Split(value, " ")
+	if 0 == len(cmds) {
+		return fmt.Errorf("command:%s format error.", value)
+	}
+	resp, err := r.db.Do(cmds[0], cmds[1:])
+	if nil != err {
+		return err
+	}
+
+	show.TitlePrintln(show.New(fmt.Sprintf("%s", resp), colors.Green))
+	return nil
+}
+
+func (r *RedisClient) Stop() {
+	r.stop((false))
+}
+
+func (r *RedisClient) stop(check bool) {
+	if check {
+		<-r.ctx.Done()
+	}
+	r.Lock()
+	if nil != r.db {
+		r.db.Close()
+		r.db = nil
+	}
+	r.Unlock()
+}

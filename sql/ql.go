@@ -2,27 +2,24 @@ package sql
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"sql-client/pkg/file"
 	"sql-client/pkg/show"
 	"sql-client/types"
-	"strings"
 	"sync"
 
 	"github.com/cznic/ql"
 	"github.com/mssola/colors"
 )
 
-type QL struct {
+type QLClient struct {
 	sync.RWMutex
 	db  *ql.DB
-	cfg *types.Config
+	cfg *types.Options
 	ctx context.Context
 }
 
-func NewQL(ctx context.Context, cfg *types.Config) *QL {
-	srv := &QL{
+func NewQLClient(ctx context.Context, cfg *types.Options) *QLClient {
+	srv := &QLClient{
 		cfg: cfg,
 		ctx: ctx,
 	}
@@ -31,14 +28,14 @@ func NewQL(ctx context.Context, cfg *types.Config) *QL {
 	return srv
 }
 
-func (s *QL) Exec(value string, color *colors.Color) error {
-	if "" == value || "" == s.cfg.Path {
+func (s *QLClient) Exec(value string, color *colors.Color) error {
+	if "" == value || "" == s.cfg.Addr {
 		return nil
 	}
 
 	var err error = nil
 	s.Lock()
-	s.db, err = ql.OpenFile(s.cfg.Path, &ql.Options{})
+	s.db, err = ql.OpenFile(s.cfg.Addr, &ql.Options{})
 	s.Unlock()
 	if nil != err {
 		return err
@@ -46,7 +43,7 @@ func (s *QL) Exec(value string, color *colors.Color) error {
 	defer s.stop(false)
 
 	ctx := ql.NewRWCtx()
-	rs, _, err := s.db.Run(ctx, fmt.Sprintf("BEGIN TRANSACTION; %s; COMMIT;", s.filter(value)))
+	rs, _, err := s.db.Run(ctx, fmt.Sprintf("BEGIN TRANSACTION; %s; COMMIT;", value))
 	if nil != err {
 		return err
 	}
@@ -67,12 +64,12 @@ func (s *QL) Exec(value string, color *colors.Color) error {
 	return nil
 }
 
-func (s *QL) Stop() {
+func (s *QLClient) Stop() {
 	s.stop(false)
 	return
 }
 
-func (s *QL) stop(check bool) {
+func (s *QLClient) stop(check bool) {
 	if check {
 		<-s.ctx.Done()
 	}
@@ -84,14 +81,7 @@ func (s *QL) stop(check bool) {
 	s.Unlock()
 }
 
-func (s *QL) filter(value string) string {
-	value = strings.Trim(value, " ")
-	value = strings.Trim(value, ";")
-	value = strings.Replace(value, "\n", " ", -1)
-	return strings.Replace(value, "\"", "'", -1)
-}
-
-func (s *QL) parse(records ql.Recordset, color *colors.Color) error {
+func (s *QLClient) parse(records ql.Recordset, color *colors.Color) error {
 	if nil == records {
 		return nil
 	}
@@ -103,12 +93,6 @@ func (s *QL) parse(records ql.Recordset, color *colors.Color) error {
 
 	if 0 == len(rs) {
 		return nil
-	}
-
-	if "" != s.cfg.File {
-		if err = file.CreatePath(s.cfg.File); nil != err {
-			return err
-		}
 	}
 
 	show.Title(int64(len(rs)))
@@ -128,20 +112,10 @@ func (s *QL) parse(records ql.Recordset, color *colors.Color) error {
 	return nil
 }
 
-func (s *QL) show(fields []string, rows [][]interface{}, color *colors.Color) error {
+func (s *QLClient) show(fields []string, rows [][]interface{}, color *colors.Color) error {
 	show.Header(fields)
 	for i, row := range rows {
-		if "" == s.cfg.File {
-			show.Body(i, row, nil)
-			continue
-		}
-		data, err := json.Marshal(row)
-		if nil != err {
-			return err
-		}
-		if err = file.WriteFile(s.cfg.File, data); nil != err {
-			return err
-		}
+		show.Body(i, row, nil)
 	}
 
 	return nil

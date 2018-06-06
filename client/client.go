@@ -17,15 +17,19 @@ type Server struct {
 	handle types.Handle
 }
 
-func New(ctx context.Context, cfg *types.Config) (*Server, error) {
+func New(ctx context.Context, cfg *types.Options) (*Server, error) {
 	srv := &Server{
 		ctx: ctx,
 	}
 	switch cfg.Type {
 	case types.QL:
-		srv.handle = sql.NewQL(ctx, cfg)
+		srv.handle = sql.NewQLClient(ctx, cfg)
 	case types.SQLLITE3:
-		srv.handle = sql.NewSqlLite(ctx, cfg)
+		srv.handle = sql.NewSqlLiteClient(ctx, cfg)
+	case types.REDIS:
+		srv.handle = sql.NewRedisClient(ctx, cfg)
+	case types.ETCD:
+		srv.handle = sql.NewEtcdClient(ctx, cfg)
 	default:
 		return nil, fmt.Errorf("unknown db driver type:%s.", cfg.Type)
 	}
@@ -68,8 +72,11 @@ func (s *Server) Stop() {
 }
 
 func (s *Server) filter(value string) string {
+	value = strings.Trim(value, " ")
+	value = strings.Trim(value, ";")
 	value = strings.Replace(value, "\n", "", -1)
 	value = strings.Replace(value, "\t", "", -1)
+	value = strings.Replace(value, "\"", "'", -1)
 	return strings.Replace(value, "  ", " ", -1)
 }
 
