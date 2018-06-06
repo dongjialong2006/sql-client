@@ -1,0 +1,123 @@
+hash: d21ea276731487e6d606d336f44d5837a1346acd147a6714b725c4f83e737c8c
+updated: 2018-06-06T10:12:49.175465+08:00
+imports:
+- name: github.com/coreos/etcd
+  version: 932c3c01f9d67471d67ff82c38acca196847f039
+  subpackages:
+  - client
+  - pkg/pathutil
+  - pkg/srv
+  - pkg/types
+  - version
+- name: github.com/coreos/go-semver
+  version: 8ab6407b697782a06568d4b7f1db25550ec2e4c6
+  subpackages:
+  - semver
+- name: github.com/cznic/b
+  version: 35e9bbe41f07452a183c517a5fc5f3c9f45eaa0f
+- name: github.com/cznic/fileutil
+  version: 6a051e75936f623600b67c2b1116b6b6c0ffb936
+- name: github.com/cznic/internal
+  version: 4747030f7cf2f4c0a01512b00cd68734b167ac3b
+  subpackages:
+  - buffer
+  - file
+  - slice
+- name: github.com/cznic/lldb
+  version: bea8611dd5c407f3c5eab9f9c68e887a27dc6f0e
+- name: github.com/cznic/mathutil
+  version: ca4c9f2c136954238c3158b92de72078c7672ecc
+- name: github.com/cznic/ql
+  version: 7a63cd7aa46ecd9f549b96983029576af2178f60
+  subpackages:
+  - vendored/github.com/camlistore/go4/lock
+- name: github.com/cznic/sortutil
+  version: 4c7342852e65c2088c981288f2c5610d10b9f7f4
+- name: github.com/cznic/strutil
+  version: 529a34b1c186b483642a7a230c67521d9aa4b0fb
+- name: github.com/cznic/zappy
+  version: 2533cb5b45cc6c07421468ce262899ddc9d53fb7
+- name: github.com/edsrzf/mmap-go
+  version: 0bce6a6887123b67a60366d2c9fe2dfb74289d2e
+- name: github.com/gomodule/redigo
+  version: 9c11da706d9b7902c6da69c592f75637793fe121
+  subpackages:
+  - internal
+  - redis
+- name: github.com/mattn/go-sqlite3
+  version: 323a32be5a2421b8c7087225079c6c900ec397cd
+- name: github.com/mssola/colors
+  version: 12d505797f20cfbd37a77a6fe58a10c13299b4c3
+- name: github.com/namsral/flag
+  version: 71ceffbeb0ba60fccc853971bb3ed4d7d90bfd04
+- name: github.com/ugorji/go
+  version: bdcc60b419d136a85cdf2e7cbcac34b3f1cd6e57
+  subpackages:
+  - codec
+testImports:
+- name: github.com/fortytw2/leaktest
+  version: a5ef70473c97b71626b9abeda80ee92ba2a7de9e
+- name: github.com/onsi/ginkgo
+  version: fa5fabab2a1bfbd924faf4c067d07ae414e2aedf
+  subpackages:
+  - config
+  - internal/codelocation
+  - internal/containernode
+  - internal/failer
+  - internal/leafnodes
+  - internal/remote
+  - internal/spec
+  - internal/spec_iterator
+  - internal/specrunner
+  - internal/suite
+  - internal/testingtproxy
+  - internal/writer
+  - reporters
+  - reporters/stenographer
+  - reporters/stenographer/support/go-colorable
+  - reporters/stenographer/support/go-isatty
+  - types
+- name: github.com/onsi/gomega
+  version: 62bff4df71bdbc266561a0caee19f0594b17c240
+  subpackages:
+  - format
+  - internal/assertion
+  - internal/asyncassertion
+  - internal/oraclematcher
+  - internal/testingtsupport
+  - matchers
+  - matchers/support/goraph/bipartitegraph
+  - matchers/support/goraph/edge
+  - matchers/support/goraph/node
+  - matchers/support/goraph/util
+  - types
+- name: golang.org/x/net
+  version: 66aacef3dd8a676686c7ae3716979581e8b03c47
+  subpackages:
+  - html
+  - html/atom
+  - html/charset
+- name: golang.org/x/sys
+  version: ebfc5b4631820b793c9010c87fd8fef0f39eb082
+  subpackages:
+  - unix
+- name: golang.org/x/text
+  version: b19bf474d317b857955b12035d2c5acb57ce8b01
+  subpackages:
+  - encoding
+  - encoding/charmap
+  - encoding/htmlindex
+  - encoding/internal
+  - encoding/internal/identifier
+  - encoding/japanese
+  - encoding/korean
+  - encoding/simplifiedchinese
+  - encoding/traditionalchinese
+  - encoding/unicode
+  - internal/tag
+  - internal/utf8internal
+  - language
+  - runes
+  - transform
+- name: gopkg.in/yaml.v2
+  version: cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b

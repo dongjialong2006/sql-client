@@ -15,11 +15,7 @@ import:
 - package: github.com/mssola/colors
 - package: github.com/namsral/flag
   version: ~1.7.4-pre
-- package: sql-client/client
-- package: sql-client/pkg/show
-- package: sql-client/pkg/transfer
-- package: sql-client/sql
-- package: sql-client/types
+
 testImport:
 - package: github.com/fortytw2/leaktest
   version: ~1.2.0

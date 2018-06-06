@@ -95,7 +95,7 @@ func (s *Server) watch(cmd chan string, color *colors.Color) {
 			continue
 		}
 
-		if len(tmp) < 5 {
+		if len(tmp) < 1 {
 			s.errInfo(fmt.Errorf("invalide input."), color, true)
 			continue
 		}

@@ -3,6 +3,7 @@ package sql
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"sql-client/pkg/show"
 	"sql-client/types"
 	"strings"
@@ -55,24 +56,73 @@ func (r *RedisClient) Exec(value string, color *colors.Color) error {
 
 	var err error = nil
 	r.Lock()
-	r.db, err = redis.Dial("tcp", r.addr, r.opts...)
-	r.Unlock()
-	if nil != err {
-		return err
+	if nil == r.db {
+		r.db, err = redis.Dial("tcp", r.addr, r.opts...)
+		if nil != err {
+			r.Unlock()
+			return err
+		}
 	}
-	defer r.stop(false)
+	r.Unlock()
 
 	cmds := strings.Split(value, " ")
 	if 0 == len(cmds) {
 		return fmt.Errorf("command:%s format error.", value)
 	}
-	resp, err := r.db.Do(cmds[0], cmds[1:])
+
+	var args []interface{} = nil
+	for _, cmd := range cmds[1:] {
+		args = append(args, cmd)
+	}
+	resp, err := r.db.Do(cmds[0], args...)
 	if nil != err {
 		return err
 	}
 
-	show.TitlePrintln(show.New(fmt.Sprintf("%s", resp), colors.Green))
+	return r.parse(resp)
+}
+
+func (r *RedisClient) parse(resp interface{}) error {
+	if nil == resp {
+		return nil
+	}
+	switch resp.(type) {
+	case int, int32, int64, uint, uint32, uint64:
+		show.Println(show.New(fmt.Sprintf("%d", resp), colors.Green))
+	case string, []byte:
+		show.Println(show.New(fmt.Sprintf("%s", resp), colors.Green))
+	case []interface{}:
+		var keys []string = nil
+		for _, key := range resp.([]interface{}) {
+			tmp := r.transfer(key)
+			if "" != tmp {
+				keys = append(keys, tmp)
+			}
+		}
+		if len(keys) > 0 {
+			show.Println(show.New(strings.Join(keys, " "), colors.Green))
+		}
+	default:
+		show.Println(show.New(fmt.Sprintf("unknown resp type:%s.", reflect.TypeOf(resp).String()), colors.Red))
+	}
+
 	return nil
+}
+
+func (r *RedisClient) transfer(resp interface{}) string {
+	if nil == resp {
+		return ""
+	}
+	switch resp.(type) {
+	case int, int32, int64, uint, uint32, uint64:
+		return fmt.Sprintf("%d", resp)
+	case string, []byte:
+		return fmt.Sprintf("%s", resp)
+	default:
+		return fmt.Sprintf("unknown resp type:%s.", reflect.TypeOf(resp).String())
+	}
+
+	return ""
 }
 
 func (r *RedisClient) Stop() {
