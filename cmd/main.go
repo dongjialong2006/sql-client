@@ -13,12 +13,13 @@ import (
 )
 
 func main() {
-	var cfg types.Config
+	var cfg *types.Options = types.NewOptions()
 	fs := flag.NewFlagSetWithEnvPrefix("sql-client", "SQL_CLIENT_", flag.ContinueOnError)
-	fs.StringVar(&cfg.Addr, "addr", "", "db addr")
-	fs.StringVar(&cfg.File, "file", "", "result store file")
-	fs.StringVar(&cfg.Path, "path", "", "db path")
-	fs.StringVar(&cfg.Type, "driver", "ql", "db path")
+	fs.StringVar(&cfg.Addr, "addr", "", "db addr or file path")
+	fs.StringVar(&cfg.Type, "type", "ql", "db type")
+
+	fs.StringVar(&cfg.Pwd, "pwd", "", "redis db pwd")
+	fs.IntVar(&cfg.RedisOpt.DB, "db", 0, "redis db")
 	fs.String(flag.DefaultConfigFlagname, "", "config location")
 
 	err := fs.Parse(os.Args[1:])
@@ -29,7 +30,7 @@ func main() {
 
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
-	srv, err := server.New(ctx, &cfg)
+	srv, err := server.New(ctx, cfg)
 	if nil != err {
 		fmt.Println(err)
 		return

@@ -4,25 +4,24 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
-	// "sql-client/pkg/file"
 	"sql-client/pkg/show"
 	"sql-client/types"
+	"strings"
 	"sync"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mssola/colors"
 )
 
-type SqlLite struct {
+type SqlLiteClient struct {
 	sync.RWMutex
 	db  *sql.DB
-	cfg *types.Config
+	cfg *types.Options
 	ctx context.Context
 }
 
-func NewSqlLite(ctx context.Context, cfg *types.Config) *SqlLite {
-	srv := &SqlLite{
+func NewSqlLiteClient(ctx context.Context, cfg *types.Options) *SqlLiteClient {
+	srv := &SqlLiteClient{
 		cfg: cfg,
 		ctx: ctx,
 	}
@@ -31,24 +30,23 @@ func NewSqlLite(ctx context.Context, cfg *types.Config) *SqlLite {
 	return srv
 }
 
-func (s *SqlLite) Exec(value string, color *colors.Color) error {
+func (s *SqlLiteClient) Exec(value string, color *colors.Color) error {
 	if "" == value {
 		return nil
 	}
-	if "" == s.cfg.Path {
+	if "" == s.cfg.Addr {
 		return fmt.Errorf("sqllite db path is empty.")
 	}
 
 	var err error = nil
 	s.Lock()
-	s.db, err = sql.Open("sqlite3", s.cfg.Path)
+	s.db, err = sql.Open("sqlite3", s.cfg.Addr)
 	s.Unlock()
 	if nil != err {
 		return err
 	}
 	defer s.stop(false)
 
-	value = strings.Trim(value, " ")
 	stmt, err := s.db.Prepare(value)
 	if nil != err {
 		return err
@@ -73,11 +71,11 @@ func (s *SqlLite) Exec(value string, color *colors.Color) error {
 	return nil
 }
 
-func (s *SqlLite) Stop() {
+func (s *SqlLiteClient) Stop() {
 	s.stop((false))
 }
 
-func (s *SqlLite) parse(rs *sql.Rows, color *colors.Color) error {
+func (s *SqlLiteClient) parse(rs *sql.Rows, color *colors.Color) error {
 	if nil == rs {
 		return nil
 	}
@@ -115,7 +113,7 @@ func (s *SqlLite) parse(rs *sql.Rows, color *colors.Color) error {
 	return nil
 }
 
-func (s *SqlLite) stop(check bool) {
+func (s *SqlLiteClient) stop(check bool) {
 	if check {
 		<-s.ctx.Done()
 	}

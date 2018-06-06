@@ -2,27 +2,24 @@ package sql
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"sql-client/pkg/file"
 	"sql-client/pkg/show"
 	"sql-client/types"
-	"strings"
 	"sync"
 
 	"github.com/cznic/ql"
 	"github.com/mssola/colors"
 )
 
-type QL struct {
+type QLClient struct {
 	sync.RWMutex
 	db  *ql.DB
-	cfg *types.Config
+	cfg *types.Options
 	ctx context.Context
 }
 
-func NewQL(ctx context.Context, cfg *types.Config) *QL {
-	srv := &QL{
+func NewQLClient(ctx context.Context, cfg *types.Options) *QLClient {
+	srv := &QLClient{
 		cfg: cfg,
 		ctx: ctx,
 	}
@@ -31,22 +28,22 @@ func NewQL(ctx context.Context, cfg *types.Config) *QL {
 	return srv
 }
 
-func (s *QL) Exec(value string, color *colors.Color) error {
-	if "" == value || "" == s.cfg.Path {
+func (q *QLClient) Exec(value string, color *colors.Color) error {
+	if "" == value || "" == q.cfg.Addr {
 		return nil
 	}
 
 	var err error = nil
-	s.Lock()
-	s.db, err = ql.OpenFile(s.cfg.Path, &ql.Options{})
-	s.Unlock()
+	q.Lock()
+	q.db, err = ql.OpenFile(q.cfg.Addr, &ql.Options{})
+	q.Unlock()
 	if nil != err {
 		return err
 	}
-	defer s.stop(false)
+	defer q.stop(false)
 
 	ctx := ql.NewRWCtx()
-	rs, _, err := s.db.Run(ctx, fmt.Sprintf("BEGIN TRANSACTION; %s; COMMIT;", s.filter(value)))
+	rs, _, err := q.db.Run(ctx, fmt.Sprintf("BEGIN TRANSACTION; %s; COMMIT;", value))
 	if nil != err {
 		return err
 	}
@@ -59,7 +56,7 @@ func (s *QL) Exec(value string, color *colors.Color) error {
 		if nil == tmp {
 			continue
 		}
-		if err = s.parse(tmp, color); nil != err {
+		if err = q.parse(tmp, color); nil != err {
 			return err
 		}
 	}
@@ -67,31 +64,24 @@ func (s *QL) Exec(value string, color *colors.Color) error {
 	return nil
 }
 
-func (s *QL) Stop() {
-	s.stop(false)
+func (q *QLClient) Stop() {
+	q.stop(false)
 	return
 }
 
-func (s *QL) stop(check bool) {
+func (q *QLClient) stop(check bool) {
 	if check {
-		<-s.ctx.Done()
+		<-q.ctx.Done()
 	}
-	s.Lock()
-	if nil != s.db {
-		s.db.Close()
-		s.db = nil
+	q.Lock()
+	if nil != q.db {
+		q.db.Close()
+		q.db = nil
 	}
-	s.Unlock()
+	q.Unlock()
 }
 
-func (s *QL) filter(value string) string {
-	value = strings.Trim(value, " ")
-	value = strings.Trim(value, ";")
-	value = strings.Replace(value, "\n", " ", -1)
-	return strings.Replace(value, "\"", "'", -1)
-}
-
-func (s *QL) parse(records ql.Recordset, color *colors.Color) error {
+func (q *QLClient) parse(records ql.Recordset, color *colors.Color) error {
 	if nil == records {
 		return nil
 	}
@@ -105,12 +95,6 @@ func (s *QL) parse(records ql.Recordset, color *colors.Color) error {
 		return nil
 	}
 
-	if "" != s.cfg.File {
-		if err = file.CreatePath(s.cfg.File); nil != err {
-			return err
-		}
-	}
-
 	show.Title(int64(len(rs)))
 
 	fields, err := records.Fields()
@@ -121,27 +105,17 @@ func (s *QL) parse(records ql.Recordset, color *colors.Color) error {
 		return nil
 	}
 
-	if err = s.show(fields, rs, color); nil != err {
+	if err = q.show(fields, rs, color); nil != err {
 		return err
 	}
 
 	return nil
 }
 
-func (s *QL) show(fields []string, rows [][]interface{}, color *colors.Color) error {
+func (q *QLClient) show(fields []string, rows [][]interface{}, color *colors.Color) error {
 	show.Header(fields)
 	for i, row := range rows {
-		if "" == s.cfg.File {
-			show.Body(i, row, nil)
-			continue
-		}
-		data, err := json.Marshal(row)
-		if nil != err {
-			return err
-		}
-		if err = file.WriteFile(s.cfg.File, data); nil != err {
-			return err
-		}
+		show.Body(i, row, nil)
 	}
 
 	return nil

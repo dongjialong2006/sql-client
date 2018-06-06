@@ -1,16 +1,28 @@
 package: .
 import:
+- package: github.com/coreos/etcd
+  version: ~3.3.6
+  subpackages:
+  - client
 - package: github.com/cznic/ql
-  version: ^1.1.0
+  version: ~1.1.0
+- package: github.com/gomodule/redigo
+  version: ~2.0.0
+  subpackages:
+  - redis
+- package: github.com/mattn/go-sqlite3
+  version: ~1.7.0
+- package: github.com/mssola/colors
 - package: github.com/namsral/flag
-  version: ^1.7.4-pre
+  version: ~1.7.4-pre
+
 testImport:
 - package: github.com/fortytw2/leaktest
-  version: ^1.2.0
+  version: ~1.2.0
 - package: github.com/onsi/ginkgo
-  version: ^1.5.0
+  version: ~1.5.0
 - package: github.com/onsi/gomega
-  version: ^1.4.0
+  version: ~1.4.0
 - package: golang.org/x/sys
   subpackages:
   - unix
@@ -20,4 +32,3 @@ testImport:
 - package: golang.org/x/text
   subpackages:
   - encoding
-- package: github.com/mattn/go-sqlite3
